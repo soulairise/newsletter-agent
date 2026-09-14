@@ -32,6 +32,7 @@ from langgraph.types import Send
 from sources import SOURCES, UA, PER_SOURCE_CAP, CFG, PROFILE
 from urlkey import canonical
 import history
+import page
 
 MODEL = "gpt-4.1-mini"
 CHUNK = 20          # 예선 묶음 크기 — 모델이 한 화면에서 흘리지 않고 볼 수 있는 크기
@@ -350,6 +351,21 @@ def publish(state: NewsState):
     embeds = build_embeds(items)
     dry = os.getenv("DRY_RUN", "1") != "0"        # 기본은 보내지 않음
     url = os.getenv("DISCORD_WEBHOOK_URL", "")
+    extra: list[str] = []
+
+    # ── ⑤-1 웹 발행: 고정 주소에 오늘치를 쓴다 (방장봇이 가리킬 곳)
+    #     0건이어도 쓴다 — "오늘은 조용합니다" 가 떠야 죽은 것과 구분된다
+    if dry:
+        Path("store").mkdir(exist_ok=True)
+        Path("store/preview.html").write_text(
+            page.render_issue(BRAND, items, datetime.now(timezone.utc)), encoding="utf-8")
+        extra.append("   ⑤-1 웹 [dry-run] store/preview.html 에만 씀")
+    else:
+        try:
+            path, n = page.publish_page(PROFILE, BRAND, items)
+            extra.append(f"   ⑤-1 웹 {path} · 회차 {n}건 보관")
+        except Exception as e:
+            extra.append(f"   ⑤-1 웹 실패({type(e).__name__})")
 
     if dry:
         line = f"⑤ 발행 [dry-run] embed {len(embeds)}장 · {sum(len(json.dumps(e, ensure_ascii=False)) for e in embeds)}자 — 보내지 않음"
@@ -380,7 +396,7 @@ def publish(state: NewsState):
             "dry_run": dry,
         }, ensure_ascii=False) + "\n")
 
-    return {"log": [line]}
+    return {"log": [line] + extra}
 
 
 # ── 그래프 ───────────────────────────────────────────────────
