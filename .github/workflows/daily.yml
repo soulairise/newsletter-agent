@@ -1,0 +1,49 @@
+name: 매일 아침 브리핑 발행
+
+on:
+  schedule:
+    # cron 은 UTC 다. 한국 아침 7시 = 전날 22:00 UTC
+    - cron: "0 22 * * *"
+  workflow_dispatch:          # 깃허브 화면의 버튼으로 즉시 실행
+    inputs:
+      dry_run:
+        description: "1이면 보내지 않고 무엇을 보낼지만 확인"
+        required: false
+        default: "0"
+
+concurrency:                  # 앞 실행이 안 끝났으면 겹쳐 돌리지 않는다
+  group: daily-brief
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20       # 매달리면 끊는다
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: uv 설치
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 의존성 설치
+        run: uv sync
+
+      - name: 발행
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+          NEWSLETTER_BRAND: 소울라이즈 AI 브리핑
+          TZ: Asia/Seoul
+        run: uv run python agent.py
+
+      - name: 실행 지표 보관
+        if: always()          # 실패해도 남긴다
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-${{ github.run_number }}
+          path: store/metrics.jsonl
+          if-no-files-found: ignore
+          retention-days: 30

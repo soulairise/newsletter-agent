@@ -1,0 +1,17 @@
+[project]
+name = "newsletter-agent"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph",
+    "langchain",
+    "langchain-core",
+    "langchain-openai",
+    "openai",
+    "pydantic",
+    "feedparser",
+    "trafilatura",
+    "requests",
+    "python-dotenv",
+    "typing-extensions",
+]
