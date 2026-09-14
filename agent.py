@@ -29,7 +29,9 @@ import trafilatura
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
-from sources import SOURCES, UA, PER_SOURCE_CAP
+from sources import SOURCES, UA, PER_SOURCE_CAP, CFG, PROFILE
+from urlkey import canonical
+import history
 
 MODEL = "gpt-4.1-mini"
 CHUNK = 20          # 예선 묶음 크기 — 모델이 한 화면에서 흘리지 않고 볼 수 있는 크기
@@ -37,7 +39,7 @@ SEMI_KEEP = 8       # 묶음당 예선 통과 수 (본선 5건보다 넉넉히 �
 TIER1_CAP = 3       # 1차 소스 자동 통과 상한 (면제만으로 자리가 다 차지 않게)
 FINAL_N = 5
 OUTLET_CAP = 2       # 한 매체가 최종 발행에서 차지할 수 있는 최대 건수
-BRAND = os.getenv("NEWSLETTER_BRAND", "소울라이즈 AI 브리핑")   # 디스코드에 뜨는 발행자 이름
+BRAND = os.getenv("NEWSLETTER_BRAND", CFG["brand"])   # 발행자 이름 (프로필 기본값)
 
 
 # ── 기사 한 건의 그릇 (교안 2강) ─────────────────────────────
@@ -59,9 +61,10 @@ class NewsState(TypedDict):
 def collect(state: NewsState):
     """소스를 돌며 시간 창 안의 글을 모으고 중복을 거른다. 한 곳이 죽어도 나머지는 모은다."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=state["hours"])
+    already = history.load_sent(PROFILE, state["hours"] * 2)   # 이미 발행한 것
     seen: set[str] = set()
     items: list[dict] = []
-    total = in_window = dup = 0
+    total = in_window = dup = sent_before = 0
     dead: list[str] = []
     per_source: dict[str, int] = {}
 
@@ -82,15 +85,19 @@ def collect(state: NewsState):
                 link = getattr(e, "link", "")
                 if not link:
                     continue
-                key = link.split("?")[0]           # utm 꼬리표를 떼고 비교
-                if key in seen:
+                key = canonical(link)              # 추적 꼬리표만 떼고 기사 번호는 보존
+                if not key or key in seen:
                     dup += 1
+                    continue
+                if key in already:                 # 이미 보낸 글은 다시 올리지 않는다
+                    sent_before += 1
                     continue
                 if per_source.get(name, 0) >= PER_SOURCE_CAP:
                     continue                       # 소스별 상한
                 seen.add(key)
                 per_source[name] = per_source.get(name, 0) + 1
                 items.append({
+                    "key": key,
                     "title": getattr(e, "title", "").strip(),
                     "url": link,
                     "source": name,
@@ -102,7 +109,7 @@ def collect(state: NewsState):
             dead.append(f"{name}({type(err).__name__})")
 
     log = [f"① 수집 전체 {total} → 창({state['hours']}h) {in_window} "
-           f"→ 중복 -{dup} → 소스상한 적용 → 후보 {len(items)}건"]
+           f"→ 중복 -{dup} → 기발행 -{sent_before} → 소스상한 적용 → 후보 {len(items)}건"]
     if dead:                                        # 조용한 실패를 막는 한 줄
         log.append(f"   ⚠️ 죽은 소스: {', '.join(dead)}")
     return {"collected": items, "log": log}
@@ -137,10 +144,10 @@ def _rank(cands: list[dict], keep: int, schema, 지시: str):
     """후보를 한 화면에 놓고 상대평가시킨다."""
     목록 = "\n".join(f"{i}. [{c['source']}] {c['title']}" for i, c in enumerate(cands))
     prompt = (
-        "당신은 국내 개발팀을 위한 AI 뉴스레터 편집자입니다.\n"
+        f"당신은 {CFG['reader']}을 위한 뉴스레터 편집자입니다.\n"
         f"{지시}\n"
-        "반드시 AI·머신러닝·개발도구·반도체 등 기술 주제의 기사만 고르세요.\n"
-        "정치·국제정세·사건사고·주가·인사 기사는 기술과 직접 관련이 없으면 제외하세요.\n"
+        f"반드시 {CFG['focus']}의 기사만 고르세요.\n"
+        f"{CFG['exclude']} 제외하세요.\n"
         "같은 사건을 다룬 기사는 하나만 고르고, event 라벨을 같게 붙이세요.\n"
         "홍보·채용공고·행사안내는 고르지 마세요.\n\n"
         f"후보:\n{목록}"
@@ -213,9 +220,8 @@ MIN_BODY = 600      # G1 관문 기준선 — 이보다 짧으면 요약을 지�
 class Draft(BaseModel):
     headline: str = Field(description="한국어 헤드라인 한 줄. 40자 이내")
     summary: str = Field(description="한국어 세 문장 요약. '~합니다'체. 원문에 있는 내용만")
-    why: str = Field(description="국내 개발팀에게 왜 중요한가 한 문장. 요약에 있는 내용만 근거로")
-    topic: Literal["모델", "도구", "산업", "정책", "연구"] = Field(
-        description="다섯 중 하나만. 다른 값은 허용되지 않는다")
+    why: str = Field(description="이 독자에게 왜 중요한가 한 문장. 요약에 있는 내용만 근거로")
+    topic: str = Field(description="아래 목록 중 정확히 하나만 그대로 쓸 것")
 
 
 def fetch_body(url: str) -> str:
@@ -235,7 +241,8 @@ def draft_one(state: dict):
         return {"drafted": [], "log": [f"   − 본문 부족({len(body)}자) 제외: {item['title'][:40]}"]}
     try:
         out = _llm().with_structured_output(Draft).invoke(
-            "당신은 국내 개발팀을 위한 AI 뉴스레터 기자입니다.\n"
+            f"당신은 {CFG['reader']}을 위한 뉴스레터 기자입니다.\n"
+            f"topic 은 반드시 다음 중 하나: {', '.join(CFG['topics'])}\n"
             "아래 원문만을 근거로 쓰세요. 원문에 없는 사실을 덧붙이지 마세요.\n"
             "반드시 한국어로 쓰세요.\n\n"
             f"제목: {item['title']}\n원문:\n{body[:6000]}"
@@ -244,6 +251,8 @@ def draft_one(state: dict):
         return {"drafted": [], "log": [f"   − 취재 실패({type(e).__name__}): {item['title'][:40]}"]}
 
     # 프롬프트는 요청이지 보장이 아니다 — 한국어 여부는 코드로 센다 (8강)
+    if out.topic not in CFG["topics"]:      # 스키마로 못 막으니 코드로 센다
+        out.topic = CFG["topics"][0]
     if not re.search(r"[가-힣]", out.summary):
         try:
             out = _llm().with_structured_output(Draft).invoke(
@@ -309,8 +318,8 @@ def verify(state: NewsState):
 
 # ── 발행 (10강) ──────────────────────────────────────────────
 EMBED_MAX, TITLE_MAX, DESC_MAX, TOTAL_MAX = 10, 256, 4096, 6000
-COLORS = {"모델": 0x0B6E77, "도구": 0x4C6EF5, "산업": 0xF08C00,
-          "정책": 0xE03131, "연구": 0x2F9E44}
+_PALETTE = [0x0B6E77, 0x4C6EF5, 0xF08C00, 0xE03131, 0x2F9E44]
+COLORS = {t: _PALETTE[i % len(_PALETTE)] for i, t in enumerate(CFG["topics"])}
 
 
 def build_embeds(items: list[dict]) -> list[dict]:
@@ -351,6 +360,11 @@ def publish(state: NewsState):
             r = requests.post(url, json={"username": BRAND, "embeds": embeds}, timeout=20)
             line = (f"⑤ 발행 {len(items)}건 전송 · HTTP {r.status_code}"
                     + ("" if r.status_code == 204 else f" · {r.text[:120]}"))
+            if r.status_code == 204:                 # 성공했을 때만 이력에 남긴다
+                history.record(PROFILE, items)
+                n = history.prune(CFG["hours"])
+                if n:
+                    line += f" · 오래된 이력 {n}건 정리"
         except Exception as e:
             line = f"⑤ 발행 실패({type(e).__name__})"
 
@@ -358,7 +372,7 @@ def publish(state: NewsState):
     Path("store").mkdir(exist_ok=True)
     with open("store/metrics.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps({
-            "at": datetime.now(timezone.utc).isoformat(),
+            "at": datetime.now(timezone.utc).isoformat(), "profile": PROFILE,
             "collected": len(state["collected"]), "picked": len(state["picked"]),
             "drafted": len(state["drafted"]), "verified": len(items),
             "verify_fail": len(state["drafted"]) - len(items),
@@ -391,7 +405,7 @@ def build():
     return b
 
 
-INIT: NewsState = {"hours": 24, "collected": [], "picked": [],
+INIT: NewsState = {"hours": CFG["hours"], "collected": [], "picked": [],
                    "drafted": [], "verified": [], "log": []}
 
 
