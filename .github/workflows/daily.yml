@@ -6,6 +6,12 @@ on:
     - cron: "0 22 * * *"
   workflow_dispatch:          # 깃허브 화면의 버튼으로 즉시 실행
     inputs:
+      profile:
+        description: "발행할 프로필"
+        required: false
+        default: "yoga"
+        type: choice
+        options: ["yoga", "ai"]
       dry_run:
         description: "1이면 보내지 않고 무엇을 보낼지만 확인"
         required: false
@@ -22,6 +28,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 20       # 매달리면 끊는다
+    strategy:
+      # 예약 실행은 두 프로필을 차례로 돌린다.
+      # 수동 실행은 고른 프로필 하나만 돈다.
+      max-parallel: 1         # docs 커밋이 겹치지 않도록 순차로
+      matrix:
+        profile: ${{ github.event_name == 'schedule' && fromJSON('["yoga","ai"]')
+                     || fromJSON(format('["{0}"]', github.event.inputs.profile || 'yoga')) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +51,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
-          NEWSLETTER_BRAND: 소울라이즈 AI 브리핑
+          NEWSLETTER_PROFILE: ${{ matrix.profile }}
           TZ: Asia/Seoul
         run: uv run python agent.py
 
@@ -58,7 +71,7 @@ jobs:
         if: always()          # 실패해도 남긴다
         uses: actions/upload-artifact@v4
         with:
-          name: metrics-${{ github.run_number }}
+          name: metrics-${{ matrix.profile }}-${{ github.run_number }}
           path: store/metrics.jsonl
           if-no-files-found: ignore
           retention-days: 30
