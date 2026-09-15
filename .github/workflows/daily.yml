@@ -11,7 +11,7 @@ on:
         required: false
         default: "yoga"
         type: choice
-        options: ["yoga", "ai"]
+        options: ["yoga", "economy", "ai"]
       dry_run:
         description: "1이면 보내지 않고 무엇을 보낼지만 확인"
         required: false
@@ -33,7 +33,7 @@ jobs:
       # 수동 실행은 고른 프로필 하나만 돈다.
       max-parallel: 1         # docs 커밋이 겹치지 않도록 순차로
       matrix:
-        profile: ${{ github.event_name == 'schedule' && fromJSON('["yoga","ai"]')
+        profile: ${{ github.event_name == 'schedule' && fromJSON('["yoga","economy","ai"]')
                      || fromJSON(format('["{0}"]', github.event.inputs.profile || 'yoga')) }}
     steps:
       - uses: actions/checkout@v4

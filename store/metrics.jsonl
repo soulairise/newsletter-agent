@@ -19,3 +19,5 @@
 {"at": "2026-09-15T03:24:16.963535+00:00", "profile": "ai", "collected": 82, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["AI타임스", "OpenAI", "전자신문"], "dry_run": true}
 {"at": "2026-09-15T03:28:01.714406+00:00", "profile": "yoga", "collected": 4, "picked": 1, "drafted": 1, "verified": 1, "verify_fail": 0, "sources": ["Yoga Medicine"], "dry_run": true}
 {"at": "2026-09-15T03:28:31.389641+00:00", "profile": "ai", "collected": 82, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["AI타임스", "OpenAI", "전자신문"], "dry_run": true}
+{"at": "2026-09-15T04:15:30.873547+00:00", "profile": "economy", "collected": 100, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["매일경제", "아시아경제", "한국경제"], "dry_run": true}
+{"at": "2026-09-15T04:16:17.610919+00:00", "profile": "economy", "collected": 100, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["매일경제", "한국경제"], "dry_run": false}
