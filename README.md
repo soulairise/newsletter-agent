@@ -1,8 +1,19 @@
-# 소울라이즈 AI 브리핑
+# 소울라이즈 브리핑 — 뉴스레터 에이전트
 
-매일 아침 7시, AI 소식 100여 건을 읽고 다섯 건으로 추려 디스코드로 보냅니다.
+매일 아침 7시, 소식을 읽고 골라 요약·검수한 뒤 디스코드와 웹으로 발행합니다.
 
-모두의연구소 AIFFEL 「AI 에이전트 1기」 · 뉴스레터 에이전트 노드 실습
+모두의연구소 AIFFEL 「AI 에이전트 1기」 · 뉴스레터 에이전트 노드 과제
+
+**발행 중인 브리핑**
+
+| 프로필 | 주제 | 보는 곳 |
+|---|---|---|
+| `yoga` | 요가 아사나·호흡·명상 실천 | https://soulairise.github.io/newsletter-agent/yoga/ |
+| `ai` | AI·머신러닝·개발도구 | https://soulairise.github.io/newsletter-agent/ai/ |
+
+```sh
+NEWSLETTER_PROFILE=yoga ./run.sh --send
+```
 
 ## 다섯 단계
 
