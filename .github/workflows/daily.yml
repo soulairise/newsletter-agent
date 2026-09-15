@@ -53,7 +53,7 @@ jobs:
           DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
           NEWSLETTER_PROFILE: ${{ matrix.profile }}
           TZ: Asia/Seoul
-        run: uv run python agent.py
+        run: uv run python run.py
 
       - name: 발행 페이지 커밋
         if: ${{ github.event.inputs.dry_run != '1' }}

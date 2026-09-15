@@ -1,0 +1,52 @@
+# 타깃 독자 · 중요도 기준 · 제외 조건
+#
+# 이 파일이 선별(②)과 취재(③) 프롬프트의 재료가 된다.
+# 소스 목록의 주석에 붙은 %는 gate_g4.py 로 잰 주제 적중률이다.
+
+defaults:
+  per_source_cap: 25       # 한 소스가 후보를 독점하지 않도록
+  chunk: 20                # 예선 묶음 크기 — 모델이 한 화면에서 흘리지 않고 볼 수 있는 크기
+  semi_keep: 8             # 묶음당 예선 통과 수 (본선 5건보다 넉넉히 → '묶음 운' 완화)
+  tier1_cap: 3             # 1차 소스 자동 통과 상한 (면제만으로 자리가 다 차지 않게)
+  final_n: 5               # 최종 발행 건수
+  outlet_cap: 2            # 한 매체가 최종 발행에서 차지할 수 있는 최대 건수
+  g4_pass_rate: 0.30       # 소스 채택 기준 — 주제 적중률
+
+profiles:
+
+  yoga:
+    brand: 소울라이즈 수련 브리핑
+    reader: 요가를 가르치거나 꾸준히 수련하는 사람
+    hours: 336             # 14일. 소스가 3곳뿐이라 창을 넓혔다
+    topics: [아사나, 호흡, 명상, 해부학, 연구]
+    # '과학 연구'를 그냥 나열했더니 모델이 그것을 필수 조건으로 읽어
+    # 실제 수련법 기사를 탈락시켰다. '하나라도 해당하면' 으로 못 박는다.
+    focus: >-
+      요가와 명상 수련 — 아래 중 하나라도 해당하면 적합하다:
+      아사나(자세) 설명이나 시퀀스, 호흡법, 명상 방법과 태도,
+      마음챙김 실천, 요가 해부학과 부상 예방,
+      수련이 몸과 마음에 미치는 영향을 다룬 연구, 수련자의 경험과 통찰
+    exclude: >-
+      특정 종교의 교리·종단 소식·법회·사찰 행사·종교 인물 기사와
+      일반 건강·다이어트·제품 홍보 기사는
+    sources:
+      - {name: Yoga Journal,  url: "https://www.yogajournal.com/feed/", tier: 2, g4: 0.50}
+      - {name: Mindful.org,   url: "https://www.mindful.org/feed/",     tier: 2, g4: 0.40}
+      - {name: Yoga Medicine, url: "https://yogamedicine.com/feed/",    tier: 2, g4: 0.40}
+
+  ai:
+    brand: 소울라이즈 AI 브리핑
+    reader: 국내 개발팀
+    hours: 24
+    topics: [모델, 도구, 산업, 정책, 연구]
+    focus: AI·머신러닝·개발도구·반도체 등 기술 주제
+    exclude: 정치·국제정세·사건사고·주가·인사 기사는 기술과 직접 관련이 없으면
+    sources:
+      - {name: HuggingFace,  url: "https://huggingface.co/blog/feed.xml",        tier: 1, g4: 0.90}
+      - {name: DeepMind,     url: "https://deepmind.google/blog/rss.xml",         tier: 1, g4: 0.85}
+      - {name: AI타임스,      url: "https://www.aitimes.com/rss/allArticle.xml",   tier: 2, g4: 0.80}
+      - {name: Hacker News,  url: "https://hnrss.org/newest?q=AI&points=100",     tier: 2, g4: 0.75}
+      - {name: OpenAI,       url: "https://openai.com/news/rss.xml",              tier: 1, g4: 0.65}
+      - {name: The Verge,    url: "https://www.theverge.com/rss/index.xml",       tier: 2, g4: 0.60}
+      - {name: TechCrunch,   url: "https://techcrunch.com/feed/",                 tier: 2, g4: 0.45}
+      - {name: 전자신문,      url: "https://rss.etnews.com/Section901.xml",        tier: 2, g4: 0.30}

@@ -29,17 +29,13 @@ import trafilatura
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
-from sources import SOURCES, UA, PER_SOURCE_CAP, CFG, PROFILE
+from sources import (SOURCES, UA, PER_SOURCE_CAP, CFG, PROFILE,
+                     CHUNK, SEMI_KEEP, TIER1_CAP, FINAL_N, OUTLET_CAP)
 from urlkey import canonical
 import history
 import page
 
 MODEL = "gpt-4.1-mini"
-CHUNK = 20          # 예선 묶음 크기 — 모델이 한 화면에서 흘리지 않고 볼 수 있는 크기
-SEMI_KEEP = 8       # 묶음당 예선 통과 수 (본선 5건보다 넉넉히 → '묶음 운' 완화)
-TIER1_CAP = 3       # 1차 소스 자동 통과 상한 (면제만으로 자리가 다 차지 않게)
-FINAL_N = 5
-OUTLET_CAP = 2       # 한 매체가 최종 발행에서 차지할 수 있는 최대 건수
 BRAND = os.getenv("NEWSLETTER_BRAND", CFG["brand"])   # 발행자 이름 (프로필 기본값)
 
 
@@ -423,18 +419,3 @@ def build():
 
 INIT: NewsState = {"hours": CFG["hours"], "collected": [], "picked": [],
                    "drafted": [], "verified": [], "log": []}
-
-
-if __name__ == "__main__":
-    result = build().compile().invoke(INIT)
-    print("─" * 74)
-    for line in result["log"]:
-        print("  " + line)
-    print("─" * 74)
-    if result["verified"]:
-        print("\n  ══ 오늘의 브리핑 ══\n")
-        for i, a in enumerate(result["verified"], 1):
-            print(f"  {i}. [{a['topic']}] {a['headline']}")
-            print(f"     {a['summary']}")
-            print(f"     💡 {a['why']}")
-            print(f"     🔗 {a['source']} · {a['url']}\n")

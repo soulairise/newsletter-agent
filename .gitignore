@@ -1,6 +1,11 @@
-.env
+.DS_Store
 .venv/
 __pycache__/
 *.pyc
-store/
-.DS_Store
+.pytest_cache/
+.env
+
+# 발행 이력에는 기사 제목과 주소가 남는다 — 공개 저장소에 올리지 않는다
+store/published.jsonl
+store/preview.html
+# store/metrics.jsonl 은 제출물이므로 추적한다

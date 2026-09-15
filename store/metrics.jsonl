@@ -1,0 +1,21 @@
+{"at": "2026-09-14T03:35:27.028616+00:00", "collected": 42, "picked": 5, "drafted": 5, "verified": 4, "verify_fail": 1, "sources": ["OpenAI", "전자신문"], "dry_run": true}
+{"at": "2026-09-14T03:36:24.819970+00:00", "collected": 42, "picked": 4, "drafted": 4, "verified": 3, "verify_fail": 1, "sources": ["OpenAI", "전자신문"], "dry_run": true}
+{"at": "2026-09-14T05:17:46.537609+00:00", "collected": 42, "picked": 5, "drafted": 5, "verified": 3, "verify_fail": 2, "sources": ["Hacker News", "OpenAI", "전자신문"], "dry_run": true}
+{"at": "2026-09-14T05:18:18.434019+00:00", "collected": 42, "picked": 5, "drafted": 5, "verified": 5, "verify_fail": 0, "sources": ["Hacker News", "OpenAI", "TechCrunch", "전자신문"], "dry_run": false}
+{"at": "2026-09-14T05:22:57.656615+00:00", "collected": 42, "picked": 5, "drafted": 5, "verified": 5, "verify_fail": 0, "sources": ["Hacker News", "OpenAI", "TechCrunch", "전자신문"], "dry_run": false}
+{"at": "2026-09-14T06:34:46.079262+00:00", "profile": "yoga", "collected": 22, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["Mindful.org", "Tricycle", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-14T06:48:06.978476+00:00", "profile": "yoga", "collected": 22, "picked": 2, "drafted": 2, "verified": 2, "verify_fail": 0, "sources": ["Tricycle", "Yoga Journal"], "dry_run": false}
+{"at": "2026-09-14T08:26:34.407687+00:00", "profile": "yoga", "collected": 94, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["Mindful.org", "Tricycle", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-14T08:27:41.120977+00:00", "profile": "yoga", "collected": 94, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["Mindful.org", "Tricycle", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-14T09:18:37.462990+00:00", "profile": "yoga", "collected": 40, "picked": 2, "drafted": 2, "verified": 2, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-14T09:34:25.294706+00:00", "profile": "yoga", "collected": 40, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Yoga Journal", "현대불교 신행"], "dry_run": true}
+{"at": "2026-09-14T09:35:52.037817+00:00", "profile": "yoga", "collected": 40, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": false}
+{"at": "2026-09-15T02:51:50.112030+00:00", "profile": "yoga", "collected": 13, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-15T02:52:27.669432+00:00", "profile": "yoga", "collected": 13, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": true}
+{"at": "2026-09-15T02:54:27.405165+00:00", "profile": "yoga", "collected": 13, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": false}
+{"at": "2026-09-15T02:56:11.951778+00:00", "profile": "yoga", "collected": 10, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": false}
+{"at": "2026-09-15T03:15:02.663292+00:00", "profile": "yoga", "collected": 7, "picked": 3, "drafted": 3, "verified": 3, "verify_fail": 0, "sources": ["Mindful.org", "Yoga Journal"], "dry_run": false}
+{"at": "2026-09-15T03:22:52.810811+00:00", "profile": "yoga", "collected": 4, "picked": 1, "drafted": 1, "verified": 0, "verify_fail": 1, "sources": [], "dry_run": true}
+{"at": "2026-09-15T03:24:16.963535+00:00", "profile": "ai", "collected": 82, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["AI타임스", "OpenAI", "전자신문"], "dry_run": true}
+{"at": "2026-09-15T03:28:01.714406+00:00", "profile": "yoga", "collected": 4, "picked": 1, "drafted": 1, "verified": 1, "verify_fail": 0, "sources": ["Yoga Medicine"], "dry_run": true}
+{"at": "2026-09-15T03:28:31.389641+00:00", "profile": "ai", "collected": 82, "picked": 4, "drafted": 4, "verified": 4, "verify_fail": 0, "sources": ["AI타임스", "OpenAI", "전자신문"], "dry_run": true}

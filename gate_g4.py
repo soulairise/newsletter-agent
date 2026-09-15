@@ -14,7 +14,7 @@ from langchain_openai import ChatOpenAI
 from sources import UA, PROFILES
 
 SAMPLE = 20
-PASS_RATE = 0.30        # 적중률 3할 미만이면 탈락
+from sources import G4_PASS_RATE as PASS_RATE
 
 
 class Fit(BaseModel):

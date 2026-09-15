@@ -20,4 +20,4 @@ else
   echo "▶ dry-run 모드 (보내지 않음). 실제로 보내려면 ./run.sh --send"
 fi
 
-exec uv run python agent.py
+exec uv run python run.py
