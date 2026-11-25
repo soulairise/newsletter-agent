@@ -9,7 +9,7 @@ for f in ~/.config/harness-lab/env ~/.config/newsletter-agent/env; do
   [ -f "$f" ] && . "$f"
 done
 
-: "${OPENAI_API_KEY:?OPENAI_API_KEY 가 없습니다 — ~/.config/harness-lab/env 를 확인하세요}"
+: "${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY 가 없습니다 — ~/.config/newsletter-agent/env 를 확인하세요}"
 
 if [ "${1:-}" = "--send" ]; then
   : "${DISCORD_WEBHOOK_URL:?DISCORD_WEBHOOK_URL 이 없습니다 — ~/.config/newsletter-agent/env 를 만드세요}"

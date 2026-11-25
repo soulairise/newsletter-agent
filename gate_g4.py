@@ -10,7 +10,8 @@ G4는 '가져와서 쓸모가 있는가'를 묻는다. 이게 빠져 있어서
 from __future__ import annotations
 import sys, requests, feedparser
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+import os
+from langchain_anthropic import ChatAnthropic
 from sources import UA, PROFILES
 
 SAMPLE = 20
@@ -24,7 +25,7 @@ class Fit(BaseModel):
 
 def measure(profile: str, extra: list[tuple[str, str, int]] | None = None):
     cfg = PROFILES[profile]
-    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0).with_structured_output(Fit)
+    llm = ChatAnthropic(model=os.getenv("LLM_MODEL", "claude-haiku-5-5"), temperature=0).with_structured_output(Fit)
     srcs = list(cfg["sources"]) + list(extra or [])
 
     print(f"\n  ══ [{profile}] {cfg['focus']} ══")

@@ -18,7 +18,6 @@ from datetime import datetime, timezone, timedelta
 
 from typing import Literal
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
 
 import json
 import os
@@ -35,7 +34,32 @@ from urlkey import canonical
 import history
 import page
 
-MODEL = "gpt-4.1-mini"
+MODEL = os.getenv("LLM_MODEL", "claude-haiku-5-5")   # 기본은 Claude (비용 적은 모델)
+
+
+class LLMFatal(RuntimeError):
+    """인증·크레딧·한도 오류 또는 AI 전면 장애 — 「탈락」으로 삼키지 않고 실행을 멈춘다.
+
+    run.py 가 exit 2 로 끝내므로 빈 「조용합니다」 페이지가 발행·커밋되지 않는다.
+    """
+
+
+_FATAL_WORDS = ("credit", "billing", "balance", "quota", "insufficient", "api key",
+                "api_key", "authentication", "invalid x-api-key", "permission")
+
+
+def is_fatal(e: BaseException) -> bool:
+    """AI 호출 예외가 키·크레딧·한도 문제인가 (재시도해도 소용없는 종류)."""
+    if isinstance(e, LLMFatal):
+        return True
+    name = type(e).__name__
+    if name in ("AuthenticationError", "PermissionDeniedError", "RateLimitError",
+                "OpenAIAuthenticationError"):
+        return True
+    code = getattr(e, "status_code", None)
+    if code in (401, 402, 403, 429):
+        return True
+    return any(w in str(e).lower() for w in _FATAL_WORDS)
 BRAND = os.getenv("NEWSLETTER_BRAND", CFG["brand"])   # 발행자 이름 (프로필 기본값)
 
 
@@ -134,7 +158,11 @@ class Final(BaseModel):
 
 
 def _llm():
-    return ChatOpenAI(model=MODEL, temperature=0)
+    if MODEL.startswith("gpt-"):               # 예전 경로 — 필요할 때만 OpenAI
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(model=MODEL, temperature=0)
+    from langchain_anthropic import ChatAnthropic
+    return ChatAnthropic(model=MODEL, temperature=0, max_tokens=4096)
 
 
 def _rank(cands: list[dict], keep: int, schema, 지시: str):
@@ -165,8 +193,10 @@ def select(state: NewsState):
 
     # ── 예선: 묶음으로 쪼개 각각 SEMI_KEEP 건
     semi: list[dict] = []
+    calls = fails = 0
     for i in range(0, len(rest), CHUNK):
         chunk = rest[i:i + CHUNK]
+        calls += 1
         try:
             out = _rank(chunk, SEMI_KEEP,
                         Shortlist, f"이 중 중요한 {SEMI_KEEP}건을 고르세요.")
@@ -175,12 +205,16 @@ def select(state: NewsState):
             semi += got
             log.append(f"   예선 묶음 {len(chunk)}건 → {len(got)}건")
         except Exception as e:
+            if is_fatal(e):
+                raise LLMFatal(f"선별 예선: {type(e).__name__}: {str(e)[:200]}") from e
+            fails += 1
             log.append(f"   ⚠️ 예선 묶음 실패({type(e).__name__}) — {len(chunk)}건 탈락")
 
     pool = tier1 + semi
     log.insert(0, f"② 예선 통과 {len(pool)}건 (1차 소스 자동통과 {len(tier1)}건 포함)")
 
     # ── 본선: 한 화면에서 최종 선별
+    calls += 1
     try:
         out = _rank(pool, FINAL_N, Final, f"이 중 오늘 발행할 상위 {FINAL_N}건을 고르세요.")
         picks = []
@@ -204,8 +238,15 @@ def select(state: NewsState):
         for d in out.dropped[:3]:
             log.append(f"   − 탈락: {d.title[:36]} — {d.reason}")
     except Exception as e:
+        if is_fatal(e):
+            raise LLMFatal(f"선별 본선: {type(e).__name__}: {str(e)[:200]}") from e
+        fails += 1
         picks = pool[:FINAL_N]
         log.append(f"   ⚠️ 본선 실패({type(e).__name__}) — 예선 순서대로 {len(picks)}건")
+
+    # AI 호출이 전부 실패했는데 후보가 충분했다면 「조용한 날」이 아니라 장애다
+    if len(cands) >= 5 and calls and fails == calls:
+        raise LLMFatal(f"선별 AI 호출 {calls}번 전부 실패 (후보 {len(cands)}건)")
 
     log.append(f"② 본선 → {len(picks)}건")
     return {"picked": picks, "log": log}
@@ -245,6 +286,8 @@ def draft_one(state: dict):
             f"제목: {item['title']}\n원문:\n{body[:6000]}"
         )
     except Exception as e:
+        if is_fatal(e):
+            raise LLMFatal(f"취재: {type(e).__name__}: {str(e)[:200]}") from e
         return {"drafted": [], "log": [f"   − 취재 실패({type(e).__name__}): {item['title'][:40]}"]}
 
     # 프롬프트는 요청이지 보장이 아니다 — 한국어 여부는 코드로 센다 (8강)
@@ -272,6 +315,9 @@ def fan_out(state: NewsState):
 
 def draft(state: NewsState):
     """팬아웃 결과를 받아 건수만 로그에 남기는 합류 지점."""
+    n_fail = sum(1 for l in state["log"] if l.startswith("   − 취재 실패"))
+    if state["picked"] and not state["drafted"] and n_fail == len(state["picked"]):
+        raise LLMFatal(f"취재 AI 호출 {n_fail}번 전부 실패")
     return {"log": [f"③ 취재 {len(state['drafted'])}건"]}
 
 
@@ -293,6 +339,7 @@ def verify(state: NewsState):
         return {"verified": [], "log": ["④ 검수 0건 (취재 결과 없음)"]}
 
     passed, log = [], []
+    v_fail = 0
     for d in drafts:
         try:
             v = _llm().with_structured_output(Verdict).invoke(
@@ -302,6 +349,9 @@ def verify(state: NewsState):
                 f"[헤드라인] {d['headline']}\n[요약] {d['summary']}\n\n[원문]\n{d['body'][:6000]}"
             )
         except Exception as e:
+            if is_fatal(e):
+                raise LLMFatal(f"검수: {type(e).__name__}: {str(e)[:200]}") from e
+            v_fail += 1
             log.append(f"   − 검수 실패({type(e).__name__}) 제외: {d['headline'][:36]}")
             continue
         if v.ok:
@@ -309,6 +359,8 @@ def verify(state: NewsState):
         else:
             log.append(f"   ✗ 불합격: {d['headline'][:32]} — {'; '.join(v.problems[:2])[:70]}")
 
+    if v_fail == len(drafts):
+        raise LLMFatal(f"검수 AI 호출 {v_fail}번 전부 실패")
     log.insert(0, f"④ 검수 {len(passed)}/{len(drafts)}건 합격")
     return {"verified": passed, "log": log}
 

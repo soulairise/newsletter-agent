@@ -15,4 +15,5 @@ dependencies = [
     "python-dotenv",
     "typing-extensions",
     "pyyaml>=6.0.3",
+    "langchain-anthropic>=1.7.13",
 ]

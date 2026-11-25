@@ -49,7 +49,7 @@ jobs:
 
       - name: 발행
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
           NEWSLETTER_PROFILE: ${{ matrix.profile }}
@@ -83,3 +83,17 @@ jobs:
           path: store/metrics.jsonl
           if-no-files-found: ignore
           retention-days: 30
+
+      - name: 실패 알림 (디스코드)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PROFILE: ${{ matrix.profile }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL 없음 — 알림 생략"; exit 0
+          fi
+          curl -sS -m 20 -H "Content-Type: application/json" \
+            -d "{\"content\": \"⚠️ ${PROFILE} 브리핑 실패: ${RUN_URL}\"}" \
+            "$DISCORD_WEBHOOK_URL" || true

@@ -7,22 +7,32 @@
 환경변수
   NEWSLETTER_PROFILE  yoga | ai   (기본 ai)
   DRY_RUN             1 이면 보내지 않음 (기본 1)
-  OPENAI_API_KEY      선별·취재·검수에 필요
+  ANTHROPIC_API_KEY   선별·취재·검수에 필요
+  LLM_MODEL           기본 claude-haiku-5-5
+
+종료 코드: 0 정상(0건 포함) · 1 키 없음 등 · 2 AI 인증/크레딧/한도/장애 (발행·커밋 안 함)
   DISCORD_WEBHOOK_URL 발행에 필요
 """
 import os
 import sys
 
-from graph import build, INIT
+from graph import build, INIT, LLMFatal, is_fatal, MODEL
 from sources import CFG, PROFILE
 
 
 def main() -> int:
-    if not os.getenv("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY 가 없습니다.", file=sys.stderr)
-        return 1
+    key = "OPENAI_API_KEY" if MODEL.startswith("gpt-") else "ANTHROPIC_API_KEY"
+    if not os.getenv(key):
+        print(f"{key} 가 없습니다.", file=sys.stderr)
+        return 2
 
-    result = build().compile().invoke(INIT)
+    try:
+        result = build().compile().invoke(INIT)
+    except Exception as e:
+        if isinstance(e, LLMFatal) or is_fatal(e):
+            print(f"❌ {PROFILE}: AI 장애로 중단 — 발행하지 않음: {e}", file=sys.stderr)
+            return 2
+        raise
 
     print("─" * 74)
     for line in result["log"]:
